@@ -1,68 +1,208 @@
-import React from 'react';
-import Filter from './Filter';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import {
+  EuiInMemoryTable,
+  EuiButtonIcon,
+  EuiText,
+  EuiSelect,
+  EuiModalBody,
+  EuiButton,
+  EuiModal,
+  EuiPageBody,
+  EuiPage,
+} from "@elastic/eui";
+
+interface UserType {
+  id: Number;
+  first_name: String;
+  last_name: String;
+  email: String;
+  verified: Boolean;
+  middle_initial?: String;
+  created_at: String;
+  district: Number;
+  active: Boolean;
+}
 
 const UserTable: React.FC = () => {
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [isEditing, setIsEditing] = useState<Boolean>(false);
+  const [confirmDelete, setConfirmDelete] = useState<Boolean>(false);
+  const [selectedUser, setSelectedUser] = useState<UserType>(users[0]);
+  const handleEditUser = (userToEdit: UserType) => {
+    setSelectedUser(userToEdit);
+    setIsEditing(true);
+  };
 
-    const handleEditUser = () => {
-        console.log('');
-    };
+  const handleDeleteUser = (userToDelete: UserType) => {
+    setSelectedUser(userToDelete);
+    setConfirmDelete(true);
+  };
 
-    const handleDeleteUser = () => {
-        console.log('');
-    };
-
-    return (
-        <div className="admin-user-table" style={{marginTop: '7rem'}}>
-            <Filter />
-            
-            <div style={{border: '1px solid black', width: '50rem', marginTop: '2rem'}}>
-                <h2 style={{textAlign: 'center', textDecoration: 'underline'}}>Users</h2>
-                <ul style={{listStyle: 'none', paddingLeft: 0, height: '30rem'}}>
-                    <li style={{fontWeight: 700, borderBottom: '2px solid black', marginBottom: '1rem', padding: '1rem'}}>
-                        <div style={{display: 'flex', justifyContent: 'space-evenly', textAlign: 'center'}}>
-                            <div style={{width: '5%'}}>ID</div>
-                            <div style={{width: '20%'}}>Last Name</div>
-                            <div style={{width: '20%'}}>First Name</div>
-                            <div style={{width: '5%'}}>M.I.</div>
-                            <div style={{width: '20%'}}>District</div>
-                            <div style={{width: '10%'}}>Verified</div>
-                            <div style={{width: '20%'}}>Created</div>
-                        </div>
-                    </li>
-                    <li style={{marginBottom: '2rem', background: '#fff', border: '1px solid black', padding: '1rem'}}>
-                        <div style={{display: 'flex', justifyContent: 'space-evenly', textAlign: 'center', marginBottom: '0.5rem'}}>
-                            <div style={{width: '5%'}}>108</div>
-                            <div style={{width: '20%'}}>Smith</div>
-                            <div style={{width: '20%'}}>Robert</div>
-                            <div style={{width: '5%'}}>J</div>
-                            <div style={{width: '20%'}}>Cure District</div>
-                            <div style={{width: '10%'}}>True</div>
-                            <div style={{width: '20%'}}>June 18, 2020</div>
-                        </div>
-                        <div style={{marginLeft: 'auto', width: '10rem', display: 'flex', justifyContent: 'space-between', paddingRight: '2rem'}}>
-                            <button type="button">Edit</button>
-                            <button type="button">Delete</button>
-                        </div>
-                    </li>
-                    <li style={{marginBottom: '2rem', background: '#fff', border: '1px solid black', padding: '1rem'}}>
-                        <div style={{display: 'flex', justifyContent: 'space-evenly', textAlign: 'center', marginBottom: '0.5rem'}}>
-                            <div style={{width: '5%'}}>142</div>
-                            <div style={{width: '20%'}}>Morrissey</div>
-                            <div style={{width: '20%'}}>Steven</div>
-                            <div style={{width: '5%'}}>P</div>
-                            <div style={{width: '20%'}}>Cure District</div>
-                            <div style={{width: '10%'}}>True</div>
-                            <div style={{width: '20%'}}>June 18, 2020</div>
-                        </div>
-                        <div style={{marginLeft: 'auto', width: '10rem', display: 'flex', justifyContent: 'space-between', paddingRight: '2rem'}}>
-                            <button type="button">Edit</button>
-                            <button type="button">Delete</button>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-        </div>
+  const deleteUser = (userToDelete: UserType) => {
+    const updatedUserList = users.filter(
+      (user: UserType) => user !== userToDelete
     );
+    setUsers(updatedUserList);
+    setConfirmDelete(false);
+  };
+
+  const updateUser = (user: UserType, field: string, newValue: string) => {
+    const userIndex = users.map((user: UserType) => user.id).indexOf(user.id);
+
+    const updatedUserList = [...users];
+
+    updatedUserList[userIndex] = {
+      ...updatedUserList[userIndex],
+      [field]: newValue,
+    };
+
+    setUsers(updatedUserList);
+  };
+
+  const saveEdits = () => {
+    setIsEditing(false);
+  };
+
+  //Fetching the JSON data
+  useEffect(() => {
+    try {
+      axios.get("/users.json").then((res) => {
+        setUsers(res.data);
+        console.log(users);
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
+  //Columns for Elastic UI
+  const columns = [
+    {
+      field: "id",
+      name: "ID",
+    },
+    {
+      field: "last_name",
+      name: "Last Name",
+    },
+    {
+      field: "first_name",
+      name: "First Name",
+    },
+    {
+      field: "middle_initial",
+      name: "M.I.",
+    },
+    {
+      field: "district",
+      name: "District",
+    },
+    {
+      name: "Verified",
+      field: "verified",
+    },
+    {
+      name: "Active",
+      field: "active",
+    },
+    {
+      name: "Email",
+      field: "email",
+    },
+    {
+      name: "Edit",
+      render: (user: UserType) => {
+        return (
+          <EuiButtonIcon
+            iconType="pencil"
+            size="m"
+            color="text"
+            display="fill"
+            onClick={() => handleEditUser(user)}
+          />
+        );
+      },
+    },
+    {
+      name: "Delete",
+      render: (user: UserType) => {
+        return (
+          <EuiButtonIcon
+            iconType="trash"
+            size="m"
+            color="danger"
+            display="fill"
+            onClick={() => handleDeleteUser(user)}
+          />
+        );
+      },
+    },
+  ];
+
+  //Modal for editing user
+  if (isEditing) {
+    return (
+      <EuiModal className="modal" onClose={saveEdits}>
+        <EuiModalBody>
+          <EuiText>Select a new district.</EuiText>
+          <EuiSelect
+            onChange={(e: any) =>
+              updateUser(selectedUser, "district", e.target.value)
+            }
+            options={[
+              { value: 1, text: "1" },
+              { value: 2, text: "2" },
+              { value: 3, text: "3" },
+              { value: 4, text: "4" },
+            ]}
+          />
+          <EuiButton fill color="success" onClick={() => saveEdits()}>
+            Save
+          </EuiButton>
+        </EuiModalBody>
+      </EuiModal>
+    );
+  }
+
+  //Modal for deleting user
+  if (confirmDelete) {
+    return (
+      <EuiModal className="modal" onClose={() => {}}>
+        <EuiModalBody className="modal-body">
+          <EuiText>Are you sure you want to delete this user?</EuiText>
+          <EuiButton
+            fill
+            color="success"
+            onClick={() => setConfirmDelete(false)}
+          >
+            No
+          </EuiButton>
+          <EuiButton
+            fill
+            color="danger"
+            onClick={() => deleteUser(selectedUser)}
+          >
+            Delete
+          </EuiButton>
+        </EuiModalBody>
+      </EuiModal>
+    );
+  }
+
+  return (
+    <>
+      <EuiPage paddingSize="l">
+        <EuiPageBody restrictWidth="2200px" style={{ marginTop: "7rem" }}>
+          <EuiInMemoryTable
+            items={[...users]}
+            columns={columns}
+            pagination={true}
+          />
+        </EuiPageBody>
+      </EuiPage>
+    </>
+  );
 };
 
 export default UserTable;
